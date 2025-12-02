@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approach Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Daily Approach Challenge</h1>
+                <div class="streak">
+                    <span class="fire">🔥</span>
+                    <span class="streak-count" id="streakCount">0</span>
+                </div>
+            </div>
+
+            <div id="punishmentBanner" class="punishment-banner hidden">
+                <div class="punishment-content">
+                    <span class="warning-icon">⚠️</span>
+                    <div>
+                        <h2>FAILED YESTERDAY - PUNISHMENT DUE</h2>
+                        <p><strong>Complete all of the following ON VIDEO:</strong></p>
+                        <ul>
+                            <li>1000 air squats</li>
+                            <li>100 pushups</li>
+                            <li>10 minute cold shower/plunge</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="counter-container">
+                <div class="counter" id="counter">0/10</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div id="successBanner" class="success-banner hidden">
+                <p class="success-title">🎉 GOAL COMPLETE!</p>
+                <p class="success-subtitle">You crushed it today. Keep the momentum going!</p>
+            </div>
+
+            <div class="button-container">
+                <button id="approachBtn" class="approach-btn">Approach Done ✓</button>
+                <button id="resetBtn" class="reset-btn">↻</button>
+            </div>
+
+            <div class="footer-text">
+                <p>Track resets daily at midnight</p>
+                <p>Miss a day? Face the consequences.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
