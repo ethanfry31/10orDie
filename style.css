@@ -62,11 +62,12 @@ h1 {
 }
 
 .title {
-  font-size: 50px;
+  font-size: 60px;
   font-weight: 1200;
   color: white;
   text-align: center;
   margin-bottom: 20px;
+  font-weight: bold;
   flex: 1;
 }
 
