@@ -22,20 +22,38 @@ const now = new Date();
 const target = new Date();
 target.setHours(20, 0, 0, 0); // Set to 8 PM
 
-if (now > target) {
-  target.setDate(target.getDate() + 1); // Set to next day if past 8 PM
-}
-
 setInterval(() => {
   const diff = target - new Date();
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  const seconds = Math.floor((diff / 1000) % 60);
-  const h = hours.toString().padStart(2, "0");
-  const m = minutes.toString().padStart(2, "0");
-  const s = seconds.toString().padStart(2, "0");
-  timerElement.textContent = `${h}:${m}:${s}`;
+  if (diff <= 0) {
+    timerElement.textContent = "00:00:00";
+
+    if (count < 10) {
+      punishmentBanner.classList.remove("hidden");
+      streak = 0;
+      updateUI();
+      saveData();
+    }
+    target.setDate(target.getDate() + 1); // Move to next day
+  } else {
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    const h = hours.toString().padStart(2, "0");
+    const m = minutes.toString().padStart(2, "0");
+    const s = seconds.toString().padStart(2, "0");
+    timerElement.textContent = `${h}:${m}:${s}`;
+  }
 }, 1000);
+
+//End of the day function
+function getDayEndTimestamp() {
+  const end = new Date();
+  end.setHours(20, 0, 0, 0); // Set to 8 PM today
+  if (end < new Date()) {
+    end.setDate(end.getDate() + 1); // If past 8 PM, set to next day
+  }
+  return end.getTime();
+}
 
 // Load data from localStorage
 function loadData() {
@@ -43,48 +61,35 @@ function loadData() {
 
   if (data) {
     const parsed = JSON.parse(data);
-    const today = getTodayString();
+    const now = Date.now();
 
     // If same day, restore count
-    if (parsed.date === today) {
-      count = parsed.count;
-      streak = parsed.streak;
-      updateUI();
-      return;
-    }
-
-    // Different day - check if yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayString = yesterday.toDateString();
-
-    // If yesterday and failed (< 10), show punishment
-    if (parsed.date === yesterdayString && parsed.count < 10) {
-      punishmentBanner.classList.remove("hidden");
-      streak = 0;
-    }
-    // If yesterday and succeeded, increment streak
-    else if (parsed.date === yesterdayString && parsed.count >= 10) {
-      streak = parsed.streak;
+    if (parsed.dayEnd && now >= parsed.dayEnd) {
+      if (parsed.count < 10) {
+        punishmentBanner.classList.remove("hidden");
+        streak = 0;
+      }
+      count = 0;
     }
     // More than one day gap - reset streak
     else {
-      streak = 0;
+      count = parsed.count || 0;
     }
+  } else {
+    streak = 0;
+    count = 0;
   }
 
-  // Reset count for new day
-  count = 0;
   updateUI();
   saveData();
 }
-
 // Save data to localStorage
 function saveData() {
   const data = {
     date: getTodayString(),
     count: count,
     streak: streak,
+    dayEnd: getDayEndTimestamp(),
   };
   localStorage.setItem("approachData", JSON.stringify(data));
 }
