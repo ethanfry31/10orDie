@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>10 or Die</title>
+    <title>10 or DIE</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="apple-touch-icon" href="icon.png" />
   </head>
@@ -11,7 +11,7 @@
     <div class="container">
       <div class="card">
         <div class="header">
-          <h1>10 or Die Average</h1>
+          <h1 class="title">10 or DIE</h1>
           <div class="streak">
             <span class="fire">🔥</span>
             <span class="streak-count" id="streakCount">0</span>
@@ -31,6 +31,21 @@
               </ul>
             </div>
           </div>
+        </div>
+
+        <div class="info-text">
+          <p>Complete at least <strong>10 approaches</strong> today.</p>
+        </div>
+
+        <div class="importance-text">
+          <p>
+            Stop playing with your potential. Remember that this volume is what
+            it takes to get good
+          </p>
+        </div>
+
+        <div class="timer-text" id="timerText">
+          <p>Time left today: <span id="timeLeft"></span></p>
         </div>
 
         <div class="counter-container">

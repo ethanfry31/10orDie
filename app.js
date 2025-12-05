@@ -16,6 +16,27 @@ function getTodayString() {
   return new Date().toDateString();
 }
 
+//timer logic
+const timerElement = document.getElementById("timeLeft");
+const now = new Date();
+const target = new Date();
+target.setHours(20, 0, 0, 0); // Set to 8 PM
+
+if (now > target) {
+  target.setDate(target.getDate() + 1); // Set to next day if past 8 PM
+}
+
+setInterval(() => {
+  const diff = target - new Date();
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+  const h = hours.toString().padStart(2, "0");
+  const m = minutes.toString().padStart(2, "0");
+  const s = seconds.toString().padStart(2, "0");
+  timerElement.textContent = `${h}:${m}:${s}`;
+}, 1000);
+
 // Load data from localStorage
 function loadData() {
   const data = localStorage.getItem("approachData");
