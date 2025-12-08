@@ -134,6 +134,9 @@ approachBtn.addEventListener("click", () => {
     updateUI();
     saveData();
   }
+  approachBtn.classList.remove("animate");
+  void approachBtn.offsetWidth; // Trigger reflow
+  approachBtn.classList.add("animate");
 });
 
 // Handle reset button click
