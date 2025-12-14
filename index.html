@@ -72,6 +72,20 @@
           <p>Track resets daily at midnight</p>
           <p>Miss a day? Face the consequences.</p>
         </div>
+        <div class="notes-section">
+          <h2>Daily Notes</h2>
+          <p class="date-display"></p>
+          <button id="addNoteBtn">Add Note</button>
+          <!-- Note input (hidden by default) -->
+          <div id="noteInput" style="display: none">
+            <textarea id="noteText" placeholder="Type your note..."></textarea>
+            <button id="saveNoteBtn">Save</button>
+            <button id="cancelNoteBtn">Cancel</button>
+          </div>
+
+          <!-- Notes list -->
+          <div id="notesList"></div>
+        </div>
       </div>
     </div>
 
