@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notes History - Daily Practice</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <!-- Header with back button -->
+        <div class="notes-header">
+          <a href="index.html" class="back-link">← Dashboard</a>
+          <h1 class="page-title">Notes History</h1>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="notes-stats">
+          <div class="stat-item">
+            <span class="stat-number" id="totalNotes">0</span>
+            <span class="stat-label">Total Notes</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="totalDays">0</span>
+            <span class="stat-label">Days Logged</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="avgNotesPerDay">0</span>
+            <span class="stat-label">Avg Per Day</span>
+          </div>
+        </div>
+
+        <!-- Search Box (Optional) -->
+        <div class="search-box">
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search notes..."
+            onkeyup="filterNotes()"
+          />
+        </div>
+
+        <!-- Notes Display -->
+        <div id="notesHistory"></div>
+      </div>
+    </div>
+
+    <script src="notes.js"></script>
+  </body>
+</html>

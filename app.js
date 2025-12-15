@@ -293,13 +293,12 @@ resetBtn.addEventListener("click", () => {
 // ============================================
 // NOTES FUNCTIONALITY
 // ============================================
-// (This section remains the same but with better comments)
 
 /**
  * Initialize notes section when DOM is ready
+ * Event listeners for note creation form
  */
 document.addEventListener("DOMContentLoaded", function () {
-  loadNotes();
   displayDate();
 
   // Attach event listeners for notes
@@ -327,29 +326,6 @@ function displayDate() {
 }
 
 /**
- * Load notes from localStorage
- * Notes reset daily (separate from streak logic)
- */
-function loadNotes() {
-  const today = getTodayString(); // Use same date function for consistency
-  const stored = localStorage.getItem("dailyNotes");
-
-  if (stored) {
-    const data = JSON.parse(stored);
-
-    // If new day, clear old notes
-    if (data.date !== today) {
-      localStorage.removeItem("dailyNotes");
-      displayNotes([]);
-    } else {
-      displayNotes(data.notes);
-    }
-  } else {
-    displayNotes([]);
-  }
-}
-
-/**
  * Show the note input form
  */
 function showNoteInput() {
@@ -369,6 +345,8 @@ function hideNoteInput() {
 
 /**
  * Save a new note to localStorage
+ * Notes are stored in allTimeNotes organized by date
+ * This allows notes to persist across days and be viewed in notes.html
  */
 function saveNote() {
   const noteText = document.getElementById("noteText").value.trim();
@@ -378,13 +356,24 @@ function saveNote() {
     return;
   }
 
-  // Get existing notes or create new structure
+  // Get today's date string for organizing notes
   const today = getTodayString();
-  let data = { date: today, notes: [] };
 
-  const stored = localStorage.getItem("dailyNotes");
+  // Load all time notes from localStorage
+  let allTimeNotes = {};
+  const stored = localStorage.getItem("allTimeNotes");
   if (stored) {
-    data = JSON.parse(stored);
+    try {
+      allTimeNotes = JSON.parse(stored);
+    } catch (error) {
+      console.error("Error loading all time notes:", error);
+      allTimeNotes = {};
+    }
+  }
+
+  // Initialize today's notes array if it doesn't exist
+  if (!allTimeNotes[today]) {
+    allTimeNotes[today] = [];
   }
 
   // Create new note object with unique ID
@@ -398,57 +387,14 @@ function saveNote() {
     }),
   };
 
-  // Add to notes array
-  data.notes.push(newNote);
+  // Add to today's notes array
+  allTimeNotes[today].push(newNote);
 
   // Save to localStorage
-  localStorage.setItem("dailyNotes", JSON.stringify(data));
+  localStorage.setItem("allTimeNotes", JSON.stringify(allTimeNotes));
 
-  // Update display
-  displayNotes(data.notes);
+  // Hide input form and clear
   hideNoteInput();
-}
-
-/**
- * Display all notes in the DOM
- * @param {Array} notes - Array of note objects
- */
-function displayNotes(notes) {
-  const notesList = document.getElementById("notesList");
-
-  if (notes.length === 0) {
-    notesList.innerHTML = '<p class="no-notes">No notes yet today</p>';
-    return;
-  }
-
-  // Generate HTML for each note
-  notesList.innerHTML = notes
-    .map(
-      (note) => `
-      <div class="note-card">
-        <p class="note-text">${note.text}</p>
-        <span class="note-time">${note.timestamp}</span>
-        <button onclick="deleteNote(${note.id})">Delete</button>
-      </div>
-    `
-    )
-    .join("");
-}
-
-/**
- * Delete a specific note by ID
- * @param {number} id - Note ID (timestamp)
- */
-function deleteNote(id) {
-  const stored = localStorage.getItem("dailyNotes");
-  if (!stored) return;
-
-  const data = JSON.parse(stored);
-  // Filter out the note with matching ID
-  data.notes = data.notes.filter((note) => note.id !== id);
-
-  localStorage.setItem("dailyNotes", JSON.stringify(data));
-  displayNotes(data.notes);
 }
 
 // ============================================
