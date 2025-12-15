@@ -79,12 +79,12 @@ function loadNotesHistory() {
 
   try {
     allNotesData = JSON.parse(stored);
-    
+
     // Validate that allNotesData is a proper object
-    if (typeof allNotesData !== 'object' || Array.isArray(allNotesData)) {
+    if (typeof allNotesData !== "object" || Array.isArray(allNotesData)) {
       throw new Error("Invalid notes data format");
     }
-    
+
     displayAllNotes(allNotesData);
     calculateAndDisplayStats(allNotesData);
   } catch (error) {
@@ -159,7 +159,7 @@ function displayNoNotes() {
     <div class="no-notes-history">
       <p>No notes recorded yet.</p>
       <p style="margin-top: 16px; font-size: 13px;">
-        <a href="index.html" style="color: #d4a574; text-decoration: underline;">
+        <a href="index.html" style="color: #ef4444; text-decoration: none;">
           Go to dashboard
         </a> to start logging notes.
       </p>
@@ -202,6 +202,12 @@ function updateStats(totalNotes, totalDays, avgPerDay) {
   document.getElementById("totalNotes").textContent = totalNotes;
   document.getElementById("totalDays").textContent = totalDays;
   document.getElementById("avgNotesPerDay").textContent = avgPerDay;
+
+  // Show stats container after updating values
+  const statsContainer = document.getElementById("statsContainer");
+  if (statsContainer) {
+    statsContainer.style.opacity = "1";
+  }
 }
 
 // ============================================
