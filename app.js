@@ -16,7 +16,12 @@ const timerElement = document.getElementById("timeLeft");
 // STATE VARIABLES
 // ============================================
 let count = 0; // Current approach count for today
-let streak = 0; // Current streak of consecutive days
+let streak = 0; // Current streak of consecutive days (stored separately, top-level only)
+
+// Daily data storage structure:
+// dailyDataStore[date] = { date, approachCount, notes: [...] }
+// This is loaded from localStorage on page init
+let dailyDataStore = {};
 
 // ============================================
 // DATE & TIME UTILITIES
@@ -76,8 +81,11 @@ function wasYesterday(dateString) {
 /**
  * Update countdown timer every second
  * Shows time remaining until 8 PM deadline
- * If deadline passes and count < 10, streak resets and punishment shows
+ * At deadline: saves approachCount to dailyData, resets count to 0 for next day
+ * If count < 10 at deadline, shows punishment and resets streak
  */
+let deadlinePassed = false; // Flag to track if we've already handled deadline for today
+
 function updateTimer() {
   const target = new Date();
   target.setHours(20, 0, 0, 0); // 8 PM today
@@ -92,15 +100,29 @@ function updateTimer() {
   if (diff <= 0) {
     timerElement.textContent = "00:00:00";
 
-    // Check if user failed today (didn't hit 10 approaches)
-    if (count < 10) {
-      punishmentBanner.classList.remove("hidden");
-      streak = 0; // Reset streak on failure
+    // Only handle deadline once per day
+    if (!deadlinePassed) {
+      deadlinePassed = true;
+
+      const today = getTodayString();
+
+      // END-OF-DAY CHECKPOINT: Save today's count to approachCount
+      dailyDataStore[today].approachCount = count;
+
+      // Check if user failed today (didn't hit 10 approaches)
+      if (count < 10) {
+        punishmentBanner.classList.remove("hidden");
+        streak = 0; // Reset streak on failure
+      }
+
+      // Reset global count to 0 for next day
+      count = 0;
+
       updateUI();
       saveData();
     }
   } else {
-    // Calculate hours, minutes, seconds remaining
+    // Recalculate hours, minutes, seconds remaining
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
     const seconds = Math.floor((diff / 1000) % 60);
@@ -111,6 +133,9 @@ function updateTimer() {
     const s = seconds.toString().padStart(2, "0");
 
     timerElement.textContent = `${h}:${m}:${s}`;
+
+    // Reset deadline flag if we cross midnight (new day)  *This might not be in the right place*
+    deadlinePassed = false;
   }
 }
 
@@ -124,19 +149,52 @@ updateTimer(); // Call immediately so we don't wait 1 second for first update
 
 /**
  * Save all app state to localStorage
- * This makes data persistent across browser sessions
- * Structure: { date, count, streak, dayEnd }
+ * dailyDataStore: Object with all daily data keyed by date
+ * streak: Top-level value for current streak only
  */
 function saveData() {
-  const data = {
-    date: getTodayString(), // "Mon Dec 16 2024"
-    count: count, // 0-10
-    streak: streak, // Current streak number (THIS IS THE KEY FIX!)
-    dayEnd: getDayEndTimestamp(), // Timestamp for 8 PM deadline
-  };
+  // Save the entire dailyDataStore
+  localStorage.setItem("dailyDataStore", JSON.stringify(dailyDataStore));
 
-  // Convert object to JSON string and save
-  localStorage.setItem("approachData", JSON.stringify(data));
+  // Save streak separately (top-level)
+  localStorage.setItem("currentStreak", JSON.stringify(streak));
+}
+
+/**
+ * Run one-time data migration from old storage format to new dailyDataStore
+ * Imports old notes from "allTimeNotes" key into the new dailyDataStore structure
+ */
+function migrateOldData() {
+  // Check if old notes data exists
+  const oldNotes = localStorage.getItem("allTimeNotes");
+  if (oldNotes) {
+    try {
+      const oldNotesData = JSON.parse(oldNotes);
+
+      // Import old notes into dailyDataStore
+      Object.keys(oldNotesData).forEach((date) => {
+        if (!dailyDataStore[date]) {
+          dailyDataStore[date] = {
+            date: date,
+            approachCount: 0, // No historical count data available
+            notes: oldNotesData[date] ?? [],
+          };
+        } else {
+          // Merge notes if date already exists
+          dailyDataStore[date].notes = oldNotesData[date] ?? [];
+        }
+      });
+
+      // IMPORTANT: Save the migrated data back to localStorage
+      localStorage.setItem("dailyDataStore", JSON.stringify(dailyDataStore));
+
+      // Delete old notes key
+      localStorage.removeItem("allTimeNotes");
+      console.log("Data migration complete");
+    } catch (error) {
+      console.error("Error during data migration:", error);
+    }
+  }
 }
 
 /**
@@ -145,51 +203,68 @@ function saveData() {
  *
  * CRITICAL STREAK LOGIC:
  * - If same day: restore count and streak
- * - If yesterday and completed (count >= 10): continue streak
- * - If yesterday but failed (count < 10): reset streak to 0
+ * - If yesterday and completed (approachCount >= 10): continue streak
+ * - If yesterday but failed (approachCount < 10): reset streak to 0
  * - If more than 1 day gap: reset streak to 0
  */
 function loadData() {
-  const stored = localStorage.getItem("approachData");
-
-  if (!stored) {
-    // No saved data - this is first time using app
-    streak = 0;
-    count = 0;
-    updateUI();
-    saveData();
-    return;
-  }
-
-  const data = JSON.parse(stored);
   const today = getTodayString();
-  const savedDate = data.date;
 
-  // CASE 1: Same day - restore everything as-is
-  if (savedDate === today) {
-    count = data.count || 0;
-    streak = data.streak || 0; // FIX: Now we load saved streak!
+  // Load dailyDataStore from localStorage
+  const storedDailyData = localStorage.getItem("dailyDataStore");
+  if (storedDailyData) {
+    try {
+      dailyDataStore = JSON.parse(storedDailyData);
+    } catch (error) {
+      console.error("Error loading dailyDataStore:", error);
+      dailyDataStore = {};
+    }
   }
-  // CASE 2: Yesterday - check if they completed
-  else if (wasYesterday(savedDate)) {
+
+  // Load streak from localStorage
+  const storedStreak = localStorage.getItem("currentStreak");
+  if (storedStreak) {
+    try {
+      streak = JSON.parse(storedStreak);
+    } catch (error) {
+      console.error("Error loading streak:", error);
+      streak = 0;
+    }
+  }
+
+  // Initialize today's entry if it doesn't exist
+  if (!dailyDataStore[today]) {
+    dailyDataStore[today] = {
+      date: today,
+      approachCount: 0,
+      notes: [],
+    };
+  }
+
+  // Get yesterday's date string for streak logic
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayString = yesterday.toDateString();
+
+  // CASE 1: Same day - restore count from today's approachCount
+  if (dailyDataStore[today].approachCount !== undefined) {
+    count = dailyDataStore[today].approachCount;
+  } else {
+    count = 0;
+  }
+
+  // CASE 2: Check yesterday's completion for streak logic
+  if (dailyDataStore[yesterdayString]) {
+    const yesterdayApproaches =
+      dailyDataStore[yesterdayString].approachCount || 0;
+
     // They completed yesterday (10/10) - continue streak!
-    if (data.count >= 10) {
-      streak = data.streak || 0; // Keep streak alive
-      count = 0; // New day, reset count
+    if (yesterdayApproaches >= 10) {
+      // Streak continues - keep as-is
     }
     // They failed yesterday - reset streak
     else {
       streak = 0;
-      count = 0;
-      punishmentBanner.classList.remove("hidden");
-    }
-  }
-  // CASE 3: More than 1 day gap - streak broken
-  else {
-    streak = 0;
-    count = 0;
-    // Show punishment if they had incomplete progress
-    if (data.count < 10) {
       punishmentBanner.classList.remove("hidden");
     }
   }
@@ -243,6 +318,67 @@ function updateUI() {
     // Hide success banner
     successBanner.classList.add("hidden");
   }
+
+  // Update today's approach count display
+  displayTodayApproachCount();
+}
+
+/**
+ * Display today's approach count and notes
+ * Shows the approach count badge and all notes for today
+ */
+function displayTodayApproachCount() {
+  const todayApproachCountElement =
+    document.getElementById("todayApproachCount");
+  if (todayApproachCountElement) {
+    todayApproachCountElement.textContent = `${count}/10`;
+  }
+
+  displayTodayNotes();
+}
+
+/**
+ * Display today's notes from dailyDataStore
+ * Shows all notes saved for today in the todayNotesList container
+ */
+function displayTodayNotes() {
+  const today = getTodayString();
+  const notesListContainer = document.getElementById("todayNotesList");
+
+  if (!notesListContainer) return;
+
+  // Get today's notes from dailyDataStore
+  const todayData = dailyDataStore[today];
+  const notes = todayData ? todayData.notes || [] : [];
+
+  if (notes.length === 0) {
+    notesListContainer.innerHTML =
+      '<p class="no-notes-today">No notes yet. Add one to get started!</p>';
+    return;
+  }
+
+  // Build HTML for today's notes
+  let html = '<div class="today-notes-list">';
+  notes.forEach((note) => {
+    html += `
+      <div class="note-card-today">
+        <p class="note-text">${escapeHtml(note.text)}</p>
+        <span class="note-time">${note.timestamp}</span>
+      </div>
+    `;
+  });
+  html += "</div>";
+
+  notesListContainer.innerHTML = html;
+}
+
+/**
+ * Escape HTML to prevent XSS attacks
+ */
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // ============================================
@@ -300,6 +436,7 @@ resetBtn.addEventListener("click", () => {
  */
 document.addEventListener("DOMContentLoaded", function () {
   displayDate();
+  displayTodayApproachCount();
 
   // Attach event listeners for notes
   document
@@ -344,9 +481,8 @@ function hideNoteInput() {
 }
 
 /**
- * Save a new note to localStorage
- * Notes are stored in allTimeNotes organized by date
- * This allows notes to persist across days and be viewed in notes.html
+ * Save a new note to dailyDataStore
+ * Notes are stored within today's dailyData object
  */
 function saveNote() {
   const noteText = document.getElementById("noteText").value.trim();
@@ -356,24 +492,16 @@ function saveNote() {
     return;
   }
 
-  // Get today's date string for organizing notes
+  // Get today's date string
   const today = getTodayString();
 
-  // Load all time notes from localStorage
-  let allTimeNotes = {};
-  const stored = localStorage.getItem("allTimeNotes");
-  if (stored) {
-    try {
-      allTimeNotes = JSON.parse(stored);
-    } catch (error) {
-      console.error("Error loading all time notes:", error);
-      allTimeNotes = {};
-    }
-  }
-
-  // Initialize today's notes array if it doesn't exist
-  if (!allTimeNotes[today]) {
-    allTimeNotes[today] = [];
+  // Ensure today's dailyData exists
+  if (!dailyDataStore[today]) {
+    dailyDataStore[today] = {
+      date: today,
+      approachCount: count,
+      notes: [],
+    };
   }
 
   // Create new note object with unique ID
@@ -387,11 +515,14 @@ function saveNote() {
     }),
   };
 
-  // Add to today's notes array
-  allTimeNotes[today].push(newNote);
+  // Add note to today's dailyData
+  dailyDataStore[today].notes.push(newNote);
 
   // Save to localStorage
-  localStorage.setItem("allTimeNotes", JSON.stringify(allTimeNotes));
+  saveData();
+
+  // Refresh today's notes display
+  displayTodayNotes();
 
   // Hide input form and clear
   hideNoteInput();
@@ -405,4 +536,5 @@ function saveNote() {
  * Load saved data when page first loads
  * This runs immediately when script loads
  */
+migrateOldData(); // One-time migration of old data structure
 loadData();

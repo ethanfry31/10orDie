@@ -41,7 +41,13 @@
             onkeyup="filterNotes()"
           />
         </div>
-
+        <button id="addNoteBtn">Add Note</button>
+        <!-- Note input (hidden by default) -->
+        <div id="noteInput" style="display: none">
+          <textarea id="noteText" placeholder="Type your note..."></textarea>
+          <button id="saveNoteBtn">Save</button>
+          <button id="cancelNoteBtn">Cancel</button>
+        </div>
         <!-- Notes Display -->
         <div id="notesHistory"></div>
       </div>
