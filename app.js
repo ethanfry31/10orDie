@@ -353,7 +353,7 @@ function displayTodayNotes() {
 
   if (notes.length === 0) {
     notesListContainer.innerHTML =
-      '<p class="no-notes-today">No notes yet. Add one to get started!</p>';
+      '<p class="no-notes-today">No notes yet today. Add one to get started!</p>';
     return;
   }
 
