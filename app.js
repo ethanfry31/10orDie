@@ -349,7 +349,6 @@ function displayTodayNotes() {
 
   // Get today's notes from dailyDataStore
   const todayData = dailyDataStore[today];
-  const notes = todayData ? todayData.notes || [] : [];
 
   if (notes.length === 0) {
     notesListContainer.innerHTML =
