@@ -349,11 +349,13 @@ function displayTodayNotes() {
 
   // Get today's notes from dailyDataStore
   const todayData = dailyDataStore[today];
-  const notes = todayData ? todayData.notes || [] : [];
 
   if (notes.length === 0) {
     notesListContainer.innerHTML =
-      '<p class="no-notes-today">No notes yet. Add one to get started!</p>';
+      '<p class="no-notes-today">No notes today. Add one to get started!</p>';
+      <style>
+        padding-bottom: 10px;
+      </style>
     return;
   }
 
