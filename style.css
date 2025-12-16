@@ -883,6 +883,15 @@ h1 {
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
+.no-notes-today {
+  text-align: center;
+  color: #4b5563;
+  padding: 20px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
 /* Scrollbar styling for notes history */
 #notesHistory {
   max-height: 800px;
