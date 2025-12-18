@@ -15,7 +15,6 @@ const timerElement = document.getElementById("timeLeft");
 // ============================================
 // STATE VARIABLES
 // ============================================
-let count = 0; // Current approach count for today
 let streak = 0; // Current streak of consecutive days (stored separately, top-level only)
 
 // Daily data storage structure:
@@ -81,8 +80,8 @@ function wasYesterday(dateString) {
 /**
  * Update countdown timer every second
  * Shows time remaining until 8 PM deadline
- * At deadline: saves approachCount to dailyData, resets count to 0 for next day
- * If count < 10 at deadline, shows punishment and resets streak
+ * At deadline: checks if user failed and resets streak if needed
+ * Creates tomorrow's entry with approachCount: 0 for the new day
  */
 let deadlinePassed = false; // Flag to track if we've already handled deadline for today
 
@@ -96,6 +95,7 @@ function updateTimer() {
   }
 
   const diff = target - new Date();
+  const today = getTodayString();
 
   if (diff <= 0) {
     timerElement.textContent = "00:00:00";
@@ -104,19 +104,13 @@ function updateTimer() {
     if (!deadlinePassed) {
       deadlinePassed = true;
 
-      const today = getTodayString();
-
-      // END-OF-DAY CHECKPOINT: Save today's count to approachCount
-      dailyDataStore[today].approachCount = count;
-
       // Check if user failed today (didn't hit 10 approaches)
-      if (count < 10) {
+      if (dailyDataStore[today].approachCount < 10) {
         punishmentBanner.classList.remove("hidden");
         streak = 0; // Reset streak on failure
       }
-
-      // Reset global count to 0 for next day
-      count = 0;
+      // No need to create tomorrow's entry here - it will be created when
+      // the page loads tomorrow via loadData() logic
 
       updateUI();
       saveData();
@@ -134,14 +128,12 @@ function updateTimer() {
 
     timerElement.textContent = `${h}:${m}:${s}`;
 
-    // Reset deadline flag if we cross midnight (new day)  *This might not be in the right place*
+    // Reset deadline flag if we cross midnight (new day)
     deadlinePassed = false;
   }
 }
 
-// Start the timer and update every second
-setInterval(updateTimer, 1000);
-updateTimer(); // Call immediately so we don't wait 1 second for first update
+// Timer initialization moved to INITIALIZATION section
 
 // ============================================
 // LOCAL STORAGE - SAVE & LOAD
@@ -158,6 +150,7 @@ function saveData() {
 
   // Save streak separately (top-level)
   localStorage.setItem("currentStreak", JSON.stringify(streak));
+
 }
 
 /**
@@ -202,10 +195,10 @@ function migrateOldData() {
  * This runs when page loads to restore previous session
  *
  * CRITICAL STREAK LOGIC:
- * - If same day: restore count and streak
- * - If yesterday and completed (approachCount >= 10): continue streak
- * - If yesterday but failed (approachCount < 10): reset streak to 0
- * - If more than 1 day gap: reset streak to 0
+ * - If today's entry doesn't exist (new day), evaluate yesterday for streak continuation
+ * - If yesterday completed (approachCount >= 10): continue streak
+ * - If yesterday failed (approachCount < 10): reset streak to 0
+ * - Create today's entry with approachCount: 0 if it's a new day
  */
 function loadData() {
   const today = getTodayString();
@@ -232,41 +225,37 @@ function loadData() {
     }
   }
 
-  // Initialize today's entry if it doesn't exist
-  if (!dailyDataStore[today]) {
-    dailyDataStore[today] = {
-      date: today,
-      approachCount: 0,
-      notes: [],
-    };
-  }
-
   // Get yesterday's date string for streak logic
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayString = yesterday.toDateString();
 
-  // CASE 1: Same day - restore count from today's approachCount
-  if (dailyDataStore[today].approachCount !== undefined) {
-    count = dailyDataStore[today].approachCount;
-  } else {
-    count = 0;
-  }
+  // Check if this is a new day (today's entry doesn't exist)
+  const isNewDay = !dailyDataStore[today];
 
-  // CASE 2: Check yesterday's completion for streak logic
-  if (dailyDataStore[yesterdayString]) {
-    const yesterdayApproaches =
-      dailyDataStore[yesterdayString].approachCount || 0;
+  if (isNewDay) {
+    // NEW DAY: Evaluate yesterday's performance for streak
+    if (dailyDataStore[yesterdayString]) {
+      const yesterdayApproaches =
+        dailyDataStore[yesterdayString].approachCount || 0;
 
-    // They completed yesterday (10/10) - continue streak!
-    if (yesterdayApproaches >= 10) {
-      // Streak continues - keep as-is
-    }
-    // They failed yesterday - reset streak
-    else {
+      // They failed yesterday - reset streak
+      if (yesterdayApproaches < 10) {
+        streak = 0;
+        punishmentBanner.classList.remove("hidden");
+      }
+      // Otherwise streak continues as-is
+    } else {
+      // No yesterday entry means streak should reset
       streak = 0;
-      punishmentBanner.classList.remove("hidden");
     }
+
+    // Initialize today's entry
+    dailyDataStore[today] = {
+      date: today,
+      approachCount: 0,
+      notes: [],
+    };
   }
 
   updateUI();
@@ -279,21 +268,24 @@ function loadData() {
 
 /**
  * Update all UI elements to reflect current state
- * This is called whenever count or streak changes
+ * This is called whenever approachCount or streak changes
  * Centralizing UI updates prevents inconsistencies
  */
 function updateUI() {
+  const today = getTodayString();
+  const todayApproachCount = dailyDataStore[today]?.approachCount || 0;
+
   // Update counter text (e.g., "7/10")
-  counter.textContent = `${count}/10`;
+  counter.textContent = `${todayApproachCount}/10`;
 
   // Update progress bar width (0% to 100%)
-  progressFill.style.width = `${(count / 10) * 100}%`;
+  progressFill.style.width = `${(todayApproachCount / 10) * 100}%`;
 
   // Update streak display
   streakCount.textContent = streak;
 
   // Check if daily goal completed
-  const isComplete = count >= 10;
+  const isComplete = todayApproachCount >= 10;
 
   if (isComplete) {
     // Add "complete" styling (green colors)
@@ -328,10 +320,13 @@ function updateUI() {
  * Shows the approach count badge and all notes for today
  */
 function displayTodayApproachCount() {
+  const today = getTodayString();
+  const todayApproachCount = dailyDataStore[today]?.approachCount || 0;
+
   const todayApproachCountElement =
     document.getElementById("todayApproachCount");
   if (todayApproachCountElement) {
-    todayApproachCountElement.textContent = `${count}/10`;
+    todayApproachCountElement.textContent = `${todayApproachCount}/10`;
   }
 
   displayTodayNotes();
@@ -387,24 +382,26 @@ function escapeHtml(text) {
 
 /**
  * Handle approach button click
- * Increments count and streak when goal is reached
+ * Increments approachCount directly and saves to localStorage immediately
  */
 approachBtn.addEventListener("click", () => {
+  const today = getTodayString();
+
   // Only increment if under 10
-  if (count < 10) {
-    count++;
+  if (dailyDataStore[today].approachCount < 10) {
+    dailyDataStore[today].approachCount++;
 
     // If just completed daily goal (hit 10), increment streak
-    if (count === 10) {
+    if (dailyDataStore[today].approachCount === 10) {
       streak++;
     }
 
     // Hide punishment banner when user starts making progress
     punishmentBanner.classList.add("hidden");
 
-    // Update display and save to localStorage
+    // Update display and save to localStorage immediately
     updateUI();
-    saveData(); // FIX: Now saves streak too!
+    saveData();
   }
 
   // Add animation effect
@@ -415,11 +412,12 @@ approachBtn.addEventListener("click", () => {
 
 /**
  * Handle reset button click
- * Resets count for today (but keeps streak intact)
+ * Resets approachCount for today (but keeps streak intact)
  */
 resetBtn.addEventListener("click", () => {
   if (confirm("Reset today's count? This won't affect your streak.")) {
-    count = 0;
+    const today = getTodayString();
+    dailyDataStore[today].approachCount = 0;
     punishmentBanner.classList.add("hidden");
     updateUI();
     saveData();
@@ -499,7 +497,7 @@ function saveNote() {
   if (!dailyDataStore[today]) {
     dailyDataStore[today] = {
       date: today,
-      approachCount: count,
+      approachCount: 0,
       notes: [],
     };
   }
@@ -538,3 +536,5 @@ function saveNote() {
  */
 migrateOldData(); // One-time migration of old data structure
 loadData();
+updateTimer(); // Initialize timer display immediately
+setInterval(updateTimer, 1000); // Update timer every second
