@@ -140,7 +140,7 @@ function loadNotesHistory() {
   if (!stored) {
     // No daily data exists yet
     displayNoNotes();
-    updateStats(0, 0, 0);
+    updateStats(0, 0, 0, 0, 0);
     return;
   }
 
@@ -157,8 +157,21 @@ function loadNotesHistory() {
   } catch (error) {
     console.error("Error loading daily data:", error);
     displayNoNotes();
-    updateStats(0, 0, 0);
+    updateStats(0, 0, 0, 0, 0);
   }
+}
+
+/**
+ * Calculate total approaches by summing all daily approach counts
+ * This is the single source of truth - always accurate since it's derived from actual data
+ */
+function calculateTotalApproaches() {
+  let total = 0;
+  Object.keys(dailyDataStore).forEach((date) => {
+    const entry = dailyDataStore[date];
+    total += entry.approachCount || 0;
+  });
+  return total;
 }
 
 /**
@@ -282,16 +295,29 @@ function calculateAndDisplayStats(dailyData) {
   const avgNotesPerDay =
     totalDays > 0 ? (totalNotes / totalDays).toFixed(1) : 0;
 
-  updateStats(totalNotes, totalDays, avgNotesPerDay, daysCompleted);
+  updateStats(
+    totalNotes,
+    totalDays,
+    avgNotesPerDay,
+    daysCompleted,
+    calculateTotalApproaches()
+  );
 }
 
 /**
  * Update statistics display in DOM
  */
-function updateStats(totalNotes, totalDays, avgPerDay, daysCompleted = 0) {
+function updateStats(
+  totalNotes,
+  totalDays,
+  avgPerDay,
+  daysCompleted = 0,
+  totalApproaches
+) {
   document.getElementById("totalNotes").textContent = totalNotes;
   document.getElementById("totalDays").textContent = totalDays;
   document.getElementById("avgNotesPerDay").textContent = avgPerDay;
+  document.getElementById("totalApproaches").textContent = totalApproaches;
 
   // Display days completed (goals met) if element exists
   const daysCompletedElement = document.getElementById("daysCompleted");

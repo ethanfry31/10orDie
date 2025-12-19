@@ -150,7 +150,6 @@ function saveData() {
 
   // Save streak separately (top-level)
   localStorage.setItem("currentStreak", JSON.stringify(streak));
-
 }
 
 /**
@@ -256,6 +255,7 @@ function loadData() {
       approachCount: 0,
       notes: [],
     };
+
   }
 
   updateUI();

@@ -685,6 +685,7 @@ h1 {
   letter-spacing: 1.5px;
   text-transform: uppercase;
   font-weight: 600;
+  padding-bottom: 8px;
 }
 
 /* Search Box */
